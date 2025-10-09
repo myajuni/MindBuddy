@@ -1,0 +1,7 @@
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+pydantic==2.9.2
+SQLAlchemy==2.0.36
+python-dotenv==1.0.1
+transformers==4.43.4
+torch  # 로컬 CUDA 환경에 맞춰 설치 (예: torch==2.4.0+cu121)

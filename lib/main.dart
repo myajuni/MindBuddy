@@ -4,8 +4,8 @@ import 'screens/chat_tab.dart';
 import 'screens/home_tab.dart';
 import 'screens/profile_tab.dart';
 
-const kMint = Color(0xFF73C8B6);
-const kDeepText = Color(0xFF2E4C58);
+const kMint = Color(0xFF9BB7D4);
+const kDeepText = Color.fromARGB(255, 29, 31, 62);
 const kHomeBg = Color(0xFFF0F6FF);
 
 Future<void> main() async {

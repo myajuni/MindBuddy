@@ -4,9 +4,11 @@ import 'package:http/http.dart' as http;
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import '../services/prompt_manager.dart';
 
-const kMint = Color(0xFF73C8B6);
-const kDeepText = Color(0xFF2E4C58);
+const kMint = Color.fromARGB(255, 119, 161, 206);
+const kDeepText = Color.fromARGB(255, 29, 31, 62);
+const kSoftBlue = Color.fromARGB(255, 81, 99, 172);
 const kBg = Color(0xFFF8FAFC);
 
 class VoiceChatPage extends StatefulWidget {
@@ -24,6 +26,10 @@ class _VoiceChatPageState extends State<VoiceChatPage> {
   bool _isProcessing = false;
   final List<Map<String, String>> _messages = [];
 
+  // ✅ 추가된 부분
+  late final PromptManager _promptManager;
+  final String _userId = "user001";
+
   @override
   void initState() {
     super.initState();
@@ -31,6 +37,8 @@ class _VoiceChatPageState extends State<VoiceChatPage> {
     _tts.setLanguage("ko-KR");
     _tts.setSpeechRate(0.48);
     _tts.setPitch(1.0);
+
+    _promptManager = PromptManager(_userId); // ✅ 프롬프트 매니저 초기화
   }
 
   Future<void> _startListening() async {
@@ -60,7 +68,7 @@ class _VoiceChatPageState extends State<VoiceChatPage> {
     setState(() => _isListening = false);
   }
 
-  /// 🧠 GPT 요청 및 응답 표시
+  /// 🧠 GPT 요청 및 응답 표시 (ChatTab과 동일한 로직)
   Future<void> _sendToGPT(String userText) async {
     setState(() {
       _isProcessing = true;
@@ -69,6 +77,11 @@ class _VoiceChatPageState extends State<VoiceChatPage> {
     });
 
     try {
+      // ✅ 1️⃣ 감정 분석 + 프롬프트 생성
+      final systemPrompt =
+          await _promptManager.updatePrompt(userText, _messages);
+
+      // ✅ 2️⃣ GPT 응답 요청
       final response = await http.post(
         Uri.parse("https://api.openai.com/v1/chat/completions"),
         headers: {
@@ -78,11 +91,7 @@ class _VoiceChatPageState extends State<VoiceChatPage> {
         body: jsonEncode({
           "model": "gpt-4o-mini",
           "messages": [
-            {
-              "role": "system",
-              "content":
-                  "You are MindBuddy, a Korean CBT-based emotional support assistant. Respond empathetically and briefly in spoken Korean."
-            },
+            {"role": "system", "content": systemPrompt},
             ..._messages.map((m) => {
                   "role": m["role"],
                   "content": m["content"],
@@ -199,7 +208,7 @@ class _VoiceChatPageState extends State<VoiceChatPage> {
                     height: 90,
                     width: 90,
                     decoration: BoxDecoration(
-                      color: _isListening ? Colors.redAccent : kMint,
+                      color: _isListening ? Colors.redAccent : kSoftBlue,
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(

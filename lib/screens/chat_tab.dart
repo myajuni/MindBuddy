@@ -6,8 +6,9 @@ import 'package:flutter_tts/flutter_tts.dart';
 import '../services/prompt_manager.dart';
 import 'voice_chat_page.dart';
 
-const kMint = Color(0xFF73C8B6);
-const kDeepText = Color(0xFF2E4C58);
+const kMint = Color(0xFF9BB7D4);
+const kDeepText = Color.fromARGB(255, 29, 31, 62);
+const kSoftBlue = Color.fromARGB(255, 81, 99, 172);
 
 class ChatTab extends StatefulWidget {
   const ChatTab({super.key});
@@ -184,12 +185,12 @@ class _ChatTabState extends State<ChatTab> {
                 const SizedBox(width: 8),
                 if (hasInput)
                   IconButton(
-                    icon: const Icon(Icons.send_rounded, color: kMint),
+                    icon: const Icon(Icons.send_rounded, color: kSoftBlue),
                     onPressed: () => sendMessage(_controller.text),
                   )
                 else
                   IconButton(
-                    icon: const Icon(Icons.mic_none_rounded, color: kMint),
+                    icon: const Icon(Icons.mic_none_rounded, color: kSoftBlue),
                     onPressed: _openVoiceChat,
                   ),
               ],

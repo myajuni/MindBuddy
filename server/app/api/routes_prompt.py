@@ -3,7 +3,6 @@ from sqlalchemy.orm import Session
 from app.schemas.prompt import PromptIn, PromptOut
 from app.db.session import get_db
 from app.db import models
-from app.services.ab import get_or_assign_variant
 from app.services.prompt_builder import build_prompt
 
 router = APIRouter()
@@ -17,7 +16,6 @@ def _memory_bundle(db: Session, user_id: str):
 
 @router.post("/prompt", response_model=PromptOut)
 def prompt(payload: PromptIn, db: Session = Depends(get_db)):
-    v = get_or_assign_variant(db, payload.user_id)
     mem = _memory_bundle(db, payload.user_id)
-    system, guard = build_prompt(v, mem, payload.last_emotion)
-    return PromptOut(system_prompt=system, guardrails=guard, variant=v)
+    system, guard = build_prompt("A", mem, payload.last_emotion)
+    return PromptOut(system_prompt=system, guardrails=guard, variant="A")

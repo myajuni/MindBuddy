@@ -1,3 +1,4 @@
+import '../user_context.dart';
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:intl/intl.dart';
@@ -13,7 +14,7 @@ class HomeTab extends StatefulWidget {
 }
 
 class _HomeTabState extends State<HomeTab> {
-  final String userId = "default_user"; // 필요 시 실제 로그인 ID로 대체
+  final String userId = AppUser.id; // 필요 시 실제 로그인 ID로 대체
   DateTime _focused = DateTime.now();
   DateTime? _selected;
   List<EmotionLog> _logs = <EmotionLog>[];

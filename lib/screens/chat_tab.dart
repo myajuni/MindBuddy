@@ -1,3 +1,4 @@
+import '../user_context.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -11,6 +12,7 @@ import 'voice_chat_page.dart';
 import 'package:mindbuddy/services/emotion_diary.dart';
 import 'package:mindbuddy/services/emotion_summarizer.dart';
 // (memory_store가 필요 없으면 빼도 됨)
+
 
 
 const kMint = Color(0xFF9BB7D4);
@@ -31,7 +33,7 @@ class _ChatTabState extends State<ChatTab> {
   bool _isLoading = false;
 
   // ✅ 사용자 ID는 나중에 로그인 연동 시 변경 가능
-  final String userId = "user001";
+  final String userId = AppUser.id;
   late final PromptManager _promptManager;
 
   @override

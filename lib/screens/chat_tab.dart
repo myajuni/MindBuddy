@@ -21,6 +21,8 @@ import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 
+import '../widgets/emotion_overlay.dart';
+import 'package:mindbuddy/services/api_client.dart';
 
 const kMint = Color(0xFF9BB7D4);
 const kDeepText = Color.fromARGB(255, 29, 31, 62);
@@ -28,7 +30,7 @@ const kSoftBlue = Color.fromARGB(255, 81, 99, 172);
 
 // ====== 기능 토글 플래그 ======
 const bool kEnablePerMessageEmotionDiary = false; // 기존: 매 발화 감정일기 저장 (OFF 권장)
-const bool kEnableDiarySummaryFab = true;        // 새 기능: 3회 이상 발화 시 FAB 대상
+const bool kEnableDiarySummaryFab = true; // 새 기능: 3회 이상 발화 시 FAB 대상
 
 class ChatTab extends StatefulWidget {
   const ChatTab({super.key});
@@ -43,19 +45,24 @@ class _ChatTabState extends State<ChatTab> {
   final FlutterTts _tts = FlutterTts();
   bool _isLoading = false;
 
+  // === 감정 플로팅 위젯용 상태 ===
+  String _lastEmotion = "평온";
+  double _lastScore = 0.5;
+  List<Map<String, dynamic>> _emotionHistory = [];
+
   // ✅ 사용자 ID는 나중에 로그인 연동 시 변경 가능
   final String userId = AppUser.id;
   late final PromptManager _promptManager;
 
   // ====== 오늘 로그/FAB 상태 ======
-  late String _todayKey;       // 예: conv_yyyy-MM-dd (대화 원문)
-  late String _todayDiaryKey;  // 예: diary_yyyy-MM-dd (요약문)
-  int _userUtterCount = 0;     // 오늘 사용자 발화 수
+  late String _todayKey; // 예: conv_yyyy-MM-dd (대화 원문)
+  late String _todayDiaryKey; // 예: diary_yyyy-MM-dd (요약문)
+  int _userUtterCount = 0; // 오늘 사용자 발화 수
 
   // --- FAB 자동 표시/숨김 제어 ---
   final ScrollController _scroll = ScrollController();
-  bool _fabEligible = false;   // 3회 이상 발화 조건 충족 여부
-  bool _fabVisible = false;    // 현재 보이는지 (3초간 true)
+  bool _fabEligible = false; // 3회 이상 발화 조건 충족 여부
+  bool _fabVisible = false; // 현재 보이는지 (3초간 true)
   Timer? _fabHideTimer;
 
   bool _summarizing = false;
@@ -72,30 +79,30 @@ class _ChatTabState extends State<ChatTab> {
   }
 
   Future<List<String>> _loadTodayLogsFromDisk() async {
-  // 🌐 웹에서는 파일 시스템 접근이 불가능하므로 그냥 SharedPreferences만 사용
-  if (kIsWeb) return [];
+    // 🌐 웹에서는 파일 시스템 접근이 불가능하므로 그냥 SharedPreferences만 사용
+    if (kIsWeb) return [];
 
-  try {
-    final file = await _todayLogFile();
-    if (!await file.exists()) return [];
-    final txt = await file.readAsString();
-    final data = jsonDecode(txt);
-    if (data is List) return data.cast<String>();
-    return [];
-  } catch (_) {
-    return [];
+    try {
+      final file = await _todayLogFile();
+      if (!await file.exists()) return [];
+      final txt = await file.readAsString();
+      final data = jsonDecode(txt);
+      if (data is List) return data.cast<String>();
+      return [];
+    } catch (_) {
+      return [];
+    }
   }
-}
 
   Future<void> _saveTodayLogsToDisk(List<String> logs) async {
-  if (kIsWeb) return; // 웹에서는 파일 저장 생략 (SharedPreferences만)
-  try {
-    final file = await _todayLogFile();
-    await file.writeAsString(jsonEncode(logs), flush: true);
-  } catch (e) {
-    debugPrint('파일 저장 실패: $e');
+    if (kIsWeb) return; // 웹에서는 파일 저장 생략 (SharedPreferences만)
+    try {
+      final file = await _todayLogFile();
+      await file.writeAsString(jsonEncode(logs), flush: true);
+    } catch (e) {
+      debugPrint('파일 저장 실패: $e');
+    }
   }
-}
 
   @override
   void initState() {
@@ -144,7 +151,8 @@ class _ChatTabState extends State<ChatTab> {
   }
 
   // ====== 오늘 로그 유틸 ======
-  Future<void> _appendTodayLog({required String role, required String text}) async {
+  Future<void> _appendTodayLog(
+      {required String role, required String text}) async {
     final sp = await SharedPreferences.getInstance();
     final List<String> logs = sp.getStringList(_todayKey) ?? [];
     final timestamp = DateFormat('HH:mm').format(DateTime.now());
@@ -159,10 +167,10 @@ class _ChatTabState extends State<ChatTab> {
     await sp.setInt('count_$_todayKey', _userUtterCount);
 
     if (!_fabEligible && kEnableDiarySummaryFab && _userUtterCount >= 3) {
-      _fabEligible = true;            // 처음 3회 달성
+      _fabEligible = true; // 처음 3회 달성
       _showFabTemporarily();
     } else if (_fabEligible) {
-      _showFabTemporarily();          // 이미 대상이면 갱신
+      _showFabTemporarily(); // 이미 대상이면 갱신
     }
   }
 
@@ -240,6 +248,20 @@ class _ChatTabState extends State<ChatTab> {
 
     try {
       final systemPrompt = await _promptManager.updatePrompt(text, _messages);
+      debugPrint("🧠 프롬프트 생성 완료");
+
+      // 🔹 FastAPI 감정 분석 결과 직접 가져오기
+      final emoRes = await ApiClient.analyzeEmotion(text);
+      setState(() {
+        _lastEmotion = (emoRes['emotion'] ?? '중립') as String;
+        _lastScore = (emoRes['score'] is num)
+            ? (emoRes['score'] as num).toDouble()
+            : 0.0;
+        _emotionHistory.add({
+          'emotion': _lastEmotion,
+          'score': _lastScore,
+        });
+      });
 
       final gptRes = await http.post(
         Uri.parse("https://api.openai.com/v1/chat/completions"),
@@ -272,9 +294,27 @@ class _ChatTabState extends State<ChatTab> {
 
       await _appendTodayLog(role: 'assistant', text: reply);
 
+      // 🔹 감정 분석 후 플로팅 위젯 업데이트
+      try {
+        final emoRes = await ApiClient.analyzeEmotion(text);
+        setState(() {
+          _lastEmotion = (emoRes['emotion'] ?? '중립') as String;
+          _lastScore = (emoRes['score'] is num)
+              ? (emoRes['score'] as num).toDouble()
+              : 0.0;
+          _emotionHistory.add({
+            'emotion': _lastEmotion,
+            'score': _lastScore,
+          });
+        });
+      } catch (e) {
+        debugPrint("⚠️ 감정 분석 실패: $e");
+      }
+
       if (kEnablePerMessageEmotionDiary) {
         try {
-          final convo = _messages.take(50)
+          final convo = _messages
+              .take(50)
               .map((m) => "${m["role"]}: ${m["content"]}")
               .join("\n");
 
@@ -349,7 +389,8 @@ class _ChatTabState extends State<ChatTab> {
     const inputBarHeight = 72.0; // 하단 입력창(텍스트필드+여백) 대략 높이
     const fabHeight = 56.0;
     const fabGap = 16.0;
-    final bottomOffset = (keyboard > 0) ? keyboard + fabGap : inputBarHeight + fabGap;
+    final bottomOffset =
+        (keyboard > 0) ? keyboard + fabGap : inputBarHeight + fabGap;
 
     return SafeArea(
       child: Stack(
@@ -373,10 +414,11 @@ class _ChatTabState extends State<ChatTab> {
                   controller: _scroll, // 스크롤 감지
                   padding: const EdgeInsets.all(12),
                   // FAB가 보일 때만 스페이서 1칸 추가
-                  itemCount: _messages.length + ((_fabEligible && _fabVisible) ? 1 : 0),
+                  itemCount: _messages.length +
+                      ((_fabEligible && _fabVisible) ? 1 : 0),
                   itemBuilder: (context, index) {
-                    final isSpacer =
-                        (_fabEligible && _fabVisible) && (index == _messages.length);
+                    final isSpacer = (_fabEligible && _fabVisible) &&
+                        (index == _messages.length);
                     if (isSpacer) {
                       // FAB 높이 + 아래 오프셋만큼 여백을 넣어 메시지 가림 방지
                       return SizedBox(height: bottomOffset + fabHeight);
@@ -385,7 +427,8 @@ class _ChatTabState extends State<ChatTab> {
                     final msg = _messages[index];
                     final isUser = msg["role"] == "user";
                     return Align(
-                      alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
+                      alignment:
+                          isUser ? Alignment.centerRight : Alignment.centerLeft,
                       child: Container(
                         margin: const EdgeInsets.symmetric(vertical: 4),
                         padding: const EdgeInsets.symmetric(
@@ -441,13 +484,21 @@ class _ChatTabState extends State<ChatTab> {
                       )
                     else
                       IconButton(
-                        icon: const Icon(Icons.mic_none_rounded, color: kSoftBlue),
+                        icon: const Icon(Icons.mic_none_rounded,
+                            color: kSoftBlue),
                         onPressed: _openVoiceChat,
                       ),
                   ],
                 ),
               ),
             ],
+          ),
+
+          // === 감정 플로팅 위젯 (MindBuddy 제목 아래) ===
+          EmotionOverlay(
+            currentEmotion: _lastEmotion,
+            currentScore: _lastScore,
+            emotionHistory: _emotionHistory,
           ),
 
           // ===== 오늘의 대화 요약 FAB: 3초 뒤 자동 숨김 + 스크롤 시 3초 재등장 (채팅창 위 중앙) =====
@@ -461,7 +512,9 @@ class _ChatTabState extends State<ChatTab> {
                   onPressed: _summarizing ? null : _onTapSummaryFab,
                   icon: _summarizing
                       ? const SizedBox(
-                          width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2))
                       : const Icon(Icons.auto_stories),
                   label: Text(_summarizing ? '요약 중...' : '오늘의 대화 요약'),
                   elevation: 4,

@@ -80,6 +80,7 @@ class _VoiceChatPageState extends State<VoiceChatPage> {
       // ✅ 1️⃣ 감정 분석 + 프롬프트 생성
       final systemPrompt =
           await _promptManager.updatePrompt(userText, _messages);
+      debugPrint("🧠 프롬프트 생성 완료");
 
       // ✅ 2️⃣ GPT 응답 요청
       final response = await http.post(

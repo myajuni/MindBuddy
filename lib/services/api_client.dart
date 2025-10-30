@@ -7,7 +7,7 @@ class ApiClient {
   static const String baseUrl = "http://127.0.0.1:8000";
 
   // 🎯 1. 감정 분석 요청
-  static Future<String> analyzeEmotion(String text) async {
+  static Future<Map<String, dynamic>> analyzeEmotion(String text) async {
     try {
       final response = await http.post(
         Uri.parse("$baseUrl/log/"), // FastAPI의 /log 엔드포인트
@@ -21,14 +21,19 @@ class ApiClient {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         debugPrint("✅ Emotion API response: $data");
-        return data['emotion'] ?? "중립";
+        return {
+          'emotion': data['emotion'] ?? '중립',
+          'score': data['score'] ?? 0.0,
+        };
       } else {
         debugPrint("❌ Emotion API failed: ${response.statusCode}");
-        return "오류";
+        // 🔹 오류 시에도 동일한 형태(Map)으로 반환
+        return {'emotion': '오류', 'score': 0.0};
       }
     } catch (e) {
       debugPrint("⚠️ Emotion API exception: $e");
-      return "오류";
+      // 🔹 예외 발생 시에도 Map 형태로 반환
+      return {'emotion': '오류', 'score': 0.0};
     }
   }
 

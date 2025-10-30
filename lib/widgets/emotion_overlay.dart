@@ -135,6 +135,31 @@ class _EmotionOverlayState extends State<EmotionOverlay> {
           titlesData: FlTitlesData(show: false), // 축/라벨 제거
           gridData: const FlGridData(show: false),
           borderData: FlBorderData(show: false),
+
+          // 그래프 말풍선
+          lineTouchData: LineTouchData(
+            enabled: true,
+            touchTooltipData: LineTouchTooltipData(
+              getTooltipColor: (spot) => Colors.black87,
+              getTooltipItems: (touchedSpots) {
+                return touchedSpots.map((spot) {
+                  final index = spot.spotIndex;
+                  final emotion =
+                      widget.emotionHistory[index]['emotion'] ?? '감정';
+                  final score = spot.y.toStringAsFixed(3);
+                  return LineTooltipItem(
+                    '$emotion: $score',
+                    const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                    ),
+                  );
+                }).toList();
+              },
+            ),
+          ),
+
           lineBarsData: [
             LineChartBarData(
               isCurved: true,

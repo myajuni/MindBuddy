@@ -1,6 +1,7 @@
 import 'package:mindbuddy/services/api_client.dart';
 import 'package:mindbuddy/services/memory_store.dart';
-
+import 'package:mindbuddy/screens/chat_tab.dart';
+import 'package:flutter/foundation.dart';
 
 class PromptManager {
   final String userId;
@@ -19,15 +20,29 @@ class PromptManager {
     return base;
   }
 
-  /// 실시간 프롬프트 업데이트
-  Future<String> updatePrompt(
+  /// 실시간 프롬프트 업데이트 (이제 감정 결과를 함께 반환)
+  Future<Map<String, dynamic>> updatePrompt(
       String text, List<Map<String, String>> messages) async {
-    final emotion = await ApiClient.analyzeEmotion(text);
-    if (emotion.isEmpty) {
-      return "You are MindBuddy, a CBT chatbot. Respond empathetically.";
+    final emoRes = await ApiClient.analyzeEmotion(text);
+    if (emoRes.isEmpty) {
+      return {
+        "prompt": "You are MindBuddy, a CBT chatbot. Respond empathetically.",
+        "emotion": "중립",
+        "score": 0.0,
+      };
     }
-    // 나머지 프롬프트 구성 로직
-    return "You are MindBuddy. The user feels $emotion. Respond warmly in Korean.";
-  }
 
+    final emotion = emoRes['emotion'] ?? '중립';
+    final score =
+        (emoRes['score'] is num) ? (emoRes['score'] as num).toDouble() : 0.0;
+
+    final prompt =
+        "You are MindBuddy. The user feels $emotion. Respond warmly in Korean.";
+
+    return {
+      "prompt": prompt,
+      "emotion": emotion,
+      "score": score,
+    };
+  }
 }

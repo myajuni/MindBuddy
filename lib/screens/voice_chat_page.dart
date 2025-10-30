@@ -5,6 +5,8 @@ import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../services/prompt_manager.dart';
+import '../widgets/emotion_overlay.dart';
+import 'package:mindbuddy/services/emotion_store.dart';
 
 const kMint = Color.fromARGB(255, 119, 161, 206);
 const kDeepText = Color.fromARGB(255, 29, 31, 62);
@@ -78,9 +80,15 @@ class _VoiceChatPageState extends State<VoiceChatPage> {
 
     try {
       // ✅ 1️⃣ 감정 분석 + 프롬프트 생성
-      final systemPrompt =
-          await _promptManager.updatePrompt(userText, _messages);
+      final res = await _promptManager.updatePrompt(userText, _messages);
+      final systemPrompt = res["prompt"];
       debugPrint("🧠 프롬프트 생성 완료");
+
+      // 감정 결과 사용 (ChatTab과 동일)
+      EmotionStore.instance.update(
+        res["emotion"] ?? "중립",
+        (res["score"] is num) ? (res["score"] as num).toDouble() : 0.0,
+      );
 
       // ✅ 2️⃣ GPT 응답 요청
       final response = await http.post(
@@ -149,83 +157,96 @@ class _VoiceChatPageState extends State<VoiceChatPage> {
           centerTitle: true,
         ),
         body: SafeArea(
-          child: Column(
+          child: Stack(
             children: [
-              Expanded(
-                child: ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: _messages.length,
-                  itemBuilder: (context, index) {
-                    final msg = _messages[index];
-                    final isUser = msg["role"] == "user";
-                    return Align(
-                      alignment:
-                          isUser ? Alignment.centerRight : Alignment.centerLeft,
+              // 기존 UI 전체를 Column으로 감쌈
+              Column(
+                children: [
+                  Expanded(
+                    child: ListView.builder(
+                      padding: const EdgeInsets.all(16),
+                      itemCount: _messages.length,
+                      itemBuilder: (context, index) {
+                        final msg = _messages[index];
+                        final isUser = msg["role"] == "user";
+                        return Align(
+                          alignment: isUser
+                              ? Alignment.centerRight
+                              : Alignment.centerLeft,
+                          child: Container(
+                            margin: const EdgeInsets.symmetric(vertical: 6),
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: isUser ? kMint : Colors.white,
+                              borderRadius: BorderRadius.circular(16),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black12,
+                                  blurRadius: 6,
+                                  offset: const Offset(0, 3),
+                                ),
+                              ],
+                            ),
+                            child: Text(
+                              msg["content"] ?? "",
+                              style: TextStyle(
+                                color: isUser ? Colors.white : kDeepText,
+                                fontSize: 15,
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+
+                  if (_isProcessing)
+                    const Padding(
+                      padding: EdgeInsets.only(bottom: 8),
+                      child: CircularProgressIndicator(color: kMint),
+                    ),
+
+                  // 🎙️ 마이크 버튼
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 24),
+                    child: GestureDetector(
+                      onTap: () {
+                        if (_isListening) {
+                          _stopListening();
+                        } else {
+                          _startListening();
+                        }
+                      },
                       child: Container(
-                        margin: const EdgeInsets.symmetric(vertical: 6),
-                        padding: const EdgeInsets.all(12),
+                        height: 90,
+                        width: 90,
                         decoration: BoxDecoration(
-                          color: isUser ? kMint : Colors.white,
-                          borderRadius: BorderRadius.circular(16),
+                          color: _isListening ? Colors.redAccent : kSoftBlue,
+                          shape: BoxShape.circle,
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black12,
-                              blurRadius: 6,
-                              offset: const Offset(0, 3),
+                              color: Colors.black26,
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
                             ),
                           ],
                         ),
-                        child: Text(
-                          msg["content"] ?? "",
-                          style: TextStyle(
-                            color: isUser ? Colors.white : kDeepText,
-                            fontSize: 15,
-                          ),
+                        child: Icon(
+                          _isListening ? Icons.mic : Icons.mic_none,
+                          color: Colors.white,
+                          size: 48,
                         ),
                       ),
-                    );
-                  },
-                ),
-              ),
-
-              if (_isProcessing)
-                const Padding(
-                  padding: EdgeInsets.only(bottom: 8),
-                  child: CircularProgressIndicator(color: kMint),
-                ),
-
-              // 🎙️ 마이크 버튼
-              Padding(
-                padding: const EdgeInsets.only(bottom: 24),
-                child: GestureDetector(
-                  onTap: () {
-                    if (_isListening) {
-                      _stopListening();
-                    } else {
-                      _startListening();
-                    }
-                  },
-                  child: Container(
-                    height: 90,
-                    width: 90,
-                    decoration: BoxDecoration(
-                      color: _isListening ? Colors.redAccent : kSoftBlue,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black26,
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: Icon(
-                      _isListening ? Icons.mic : Icons.mic_none,
-                      color: Colors.white,
-                      size: 48,
                     ),
                   ),
-                ),
+                ],
+              ),
+
+              // === 🧠 감정 플로팅 위젯 추가 부분 ===
+              EmotionOverlay(
+                currentEmotion: EmotionStore.instance.emotion,
+                currentScore: EmotionStore.instance.score,
+                emotionHistory: EmotionStore.instance.history,
               ),
             ],
           ),

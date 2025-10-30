@@ -5,7 +5,7 @@ import 'package:fl_chart/fl_chart.dart';
 final Map<String, Color> emotionColors = {
   "기쁨": Colors.yellowAccent,
   "슬픔": Colors.lightBlueAccent,
-  "불안": Colors.purpleAccent,
+  "불안": Colors.deepPurpleAccent,
   "분노": Colors.redAccent,
   "평온": Colors.greenAccent,
   "당황": Colors.blueAccent,

@@ -15,7 +15,6 @@ import 'voice_chat_page.dart';
 // 🔽 서비스 파일들은 패키지 경로 + 별칭으로 고정
 import 'package:mindbuddy/services/emotion_diary.dart';
 import 'package:mindbuddy/services/emotion_summarizer.dart';
-// (memory_store가 필요 없으면 빼도 됨)
 
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
@@ -23,6 +22,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 
 import '../widgets/emotion_overlay.dart';
 import 'package:mindbuddy/services/api_client.dart';
+import 'package:mindbuddy/services/emotion_store.dart';
 
 const kMint = Color(0xFF9BB7D4);
 const kDeepText = Color.fromARGB(255, 29, 31, 62);
@@ -44,11 +44,6 @@ class _ChatTabState extends State<ChatTab> {
   final List<Map<String, String>> _messages = [];
   final FlutterTts _tts = FlutterTts();
   bool _isLoading = false;
-
-  // === 감정 플로팅 위젯용 상태 ===
-  String _lastEmotion = "평온";
-  double _lastScore = 0.5;
-  List<Map<String, dynamic>> _emotionHistory = [];
 
   // ✅ 사용자 ID는 나중에 로그인 연동 시 변경 가능
   final String userId = AppUser.id;
@@ -247,21 +242,15 @@ class _ChatTabState extends State<ChatTab> {
     await _incUserCountAndMaybeShowFab();
 
     try {
-      final systemPrompt = await _promptManager.updatePrompt(text, _messages);
+      final res = await _promptManager.updatePrompt(text, _messages);
+      final systemPrompt = res["prompt"];
       debugPrint("🧠 프롬프트 생성 완료");
 
-      // 🔹 FastAPI 감정 분석 결과 직접 가져오기
-      final emoRes = await ApiClient.analyzeEmotion(text);
-      setState(() {
-        _lastEmotion = (emoRes['emotion'] ?? '중립') as String;
-        _lastScore = (emoRes['score'] is num)
-            ? (emoRes['score'] as num).toDouble()
-            : 0.0;
-        _emotionHistory.add({
-          'emotion': _lastEmotion,
-          'score': _lastScore,
-        });
-      });
+      // 감정 결과 사용
+      EmotionStore.instance.update(
+        res["emotion"] ?? "중립",
+        (res["score"] is num) ? (res["score"] as num).toDouble() : 0.0,
+      );
 
       final gptRes = await http.post(
         Uri.parse("https://api.openai.com/v1/chat/completions"),
@@ -293,23 +282,6 @@ class _ChatTabState extends State<ChatTab> {
       });
 
       await _appendTodayLog(role: 'assistant', text: reply);
-
-      // 🔹 감정 분석 후 플로팅 위젯 업데이트
-      try {
-        final emoRes = await ApiClient.analyzeEmotion(text);
-        setState(() {
-          _lastEmotion = (emoRes['emotion'] ?? '중립') as String;
-          _lastScore = (emoRes['score'] is num)
-              ? (emoRes['score'] as num).toDouble()
-              : 0.0;
-          _emotionHistory.add({
-            'emotion': _lastEmotion,
-            'score': _lastScore,
-          });
-        });
-      } catch (e) {
-        debugPrint("⚠️ 감정 분석 실패: $e");
-      }
 
       if (kEnablePerMessageEmotionDiary) {
         try {
@@ -496,9 +468,9 @@ class _ChatTabState extends State<ChatTab> {
 
           // === 감정 플로팅 위젯 (MindBuddy 제목 아래) ===
           EmotionOverlay(
-            currentEmotion: _lastEmotion,
-            currentScore: _lastScore,
-            emotionHistory: _emotionHistory,
+            currentEmotion: EmotionStore.instance.emotion,
+            currentScore: EmotionStore.instance.score,
+            emotionHistory: EmotionStore.instance.history,
           ),
 
           // ===== 오늘의 대화 요약 FAB: 3초 뒤 자동 숨김 + 스크롤 시 3초 재등장 (채팅창 위 중앙) =====

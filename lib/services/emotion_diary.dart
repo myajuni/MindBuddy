@@ -1,11 +1,13 @@
+// lib/services/emotion_diary.dart 파일
+
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class EmotionLog {
   final DateTime date;
-  final String emoji;   // 😊 😐 ☹️ 등
+  final String emoji; // 😊 😐 ☹️ 등
   final String summary; // 한 줄 요약
-  final String source;  // 요약 근거 텍스트(옵션)
+  final String source; // 요약 근거 텍스트(옵션)
 
   EmotionLog({
     required this.date,

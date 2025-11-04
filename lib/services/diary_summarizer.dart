@@ -1,4 +1,5 @@
-// lib/services/diary_summarizer.dart
+// lib/services/diary_summarizer.dart 파일
+
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -51,7 +52,8 @@ $safeText
     }
 
     final data = jsonDecode(res.body);
-    final content = data["choices"]?[0]?["message"]?["content"]?.toString().trim();
+    final content =
+        data["choices"]?[0]?["message"]?["content"]?.toString().trim();
     return (content == null || content.isEmpty) ? '요약 결과가 비어 있습니다.' : content;
   }
 }

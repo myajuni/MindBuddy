@@ -1,3 +1,5 @@
+// lib/services/emotion_summarizer.dart 파일
+
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -5,7 +7,8 @@ import 'package:characters/characters.dart';
 
 /// GPT API를 이용해 대화 내용을 감정 이모지 + 한 줄 요약으로 생성
 class EmotionSummarizer {
-  static Future<({String emoji, String summary})> summarize(String conversation) async {
+  static Future<({String emoji, String summary})> summarize(
+      String conversation) async {
     final key = dotenv.env['OPENAI_API_KEY'] ?? '';
     if (key.isEmpty) {
       return (emoji: "😐", summary: "오늘은 무난한 하루였어요.");
@@ -29,7 +32,10 @@ $conversation
         body: jsonEncode({
           "model": "gpt-4o-mini",
           "messages": [
-            {"role": "system", "content": "You are a concise Korean summarizer."},
+            {
+              "role": "system",
+              "content": "You are a concise Korean summarizer."
+            },
             {"role": "user", "content": prompt},
           ],
           "temperature": 0.2,
@@ -40,7 +46,10 @@ $conversation
         return (emoji: "😐", summary: "오늘은 무난한 하루였어요.");
       }
 
-      final content = (jsonDecode(res.body)["choices"][0]["message"]["content"] as String?)?.trim() ?? "";
+      final content =
+          (jsonDecode(res.body)["choices"][0]["message"]["content"] as String?)
+                  ?.trim() ??
+              "";
       final emoji = content.isNotEmpty ? content.characters.first : "😐";
       final summary = content
           .replaceFirst(emoji, "")
@@ -48,7 +57,10 @@ $conversation
           .replaceFirst(RegExp(r'^[\s:·\-–—]+'), '')
           .trim();
 
-      return (emoji: emoji, summary: summary.isEmpty ? "오늘은 무난한 하루였어요." : summary);
+      return (
+        emoji: emoji,
+        summary: summary.isEmpty ? "오늘은 무난한 하루였어요." : summary
+      );
     } catch (_) {
       return (emoji: "😐", summary: "요약 생성 실패");
     }
@@ -56,5 +68,6 @@ $conversation
 }
 
 /// 🔧 클래스 인식 꼬임을 우회하기 위한 '탑레벨 래퍼 함수'
-Future<({String emoji, String summary})> summarizeConversation(String conversation) =>
+Future<({String emoji, String summary})> summarizeConversation(
+        String conversation) =>
     EmotionSummarizer.summarize(conversation);

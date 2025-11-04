@@ -1,8 +1,13 @@
+// lib/main.dart 파일
+
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'screens/home_tab.dart';
 import 'screens/chat_tab.dart';
+import 'services/emotion_store.dart';
 import 'screens/profile_tab.dart';
+import 'screens/voice_chat_page.dart';
+import 'package:intl/date_symbol_data_local.dart';
 
 const kMint = Color(0xFF9BB7D4);
 const kDeepText = Color.fromARGB(255, 29, 31, 62);
@@ -10,7 +15,17 @@ const kHomeBg = Color(0xFFF0F6FF);
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // ✅ 1️⃣ .env 먼저 로드
   await dotenv.load(fileName: ".env");
+
+  // ✅ 2️⃣ 날짜 포맷 로케일 초기화 (가장 먼저!)
+  await initializeDateFormatting('ko_KR', null);
+
+  // ✅ 3️⃣ EmotionStore의 암호화 데이터 복원
+  await EmotionStore.instance.init();
+
+  // ✅ 4️⃣ 앱 실행
   runApp(const MyApp());
 }
 

@@ -1,5 +1,6 @@
+// lib/services/prompt_manager.dart 파일
+
 import 'package:mindbuddy/services/api_client.dart';
-import 'package:mindbuddy/services/memory_store.dart';
 import 'package:mindbuddy/screens/chat_tab.dart';
 import 'package:flutter/foundation.dart';
 
@@ -9,14 +10,10 @@ class PromptManager {
 
   /// 최초 프롬프트 설정
   Future<String> initializePrompt() async {
-    final memory = await MemoryStore.load(userId);
-    final base = """
+    const base = """
 너는 MindBuddy라는 감정 상담 챗봇이야.
-사용자의 감정과 기억을 고려해 두 문장 이내로 답해야 해.
+사용자의 감정 상태를 공감하며 두 문장 이내로 답해야 해.
 """;
-    if (memory.traits.isNotEmpty) {
-      return "$base\n[사용자 성향: ${memory.traits.join(", ")}]";
-    }
     return base;
   }
 

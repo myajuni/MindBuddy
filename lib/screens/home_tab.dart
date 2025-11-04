@@ -1,10 +1,15 @@
+// lib/screens/home_tab.dart 파일
+
 import '../user_context.dart';
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:intl/intl.dart';
 import '../main.dart';
 // import '../services/memory_store.dart';
-import '../services/emotion_diary.dart';   // ← 상대경로가 제일 튼튼함
+import '../services/emotion_diary.dart'; // ← 상대경로가 제일 튼튼함
+
+import '../widgets/weekly_trend_card.dart';
+import '../widgets/emotion_ratio_pie.dart';
 
 /// ---------------------- 홈 탭 ----------------------
 class HomeTab extends StatefulWidget {
@@ -31,87 +36,118 @@ class _HomeTabState extends State<HomeTab> {
   }
 
   List<EmotionLog> _logsForDay(DateTime day) {
-    return _logs.where((e) =>
-      e.date.year == day.year &&
-      e.date.month == day.month &&
-      e.date.day == day.day
-    ).toList();
+    return _logs
+        .where((e) =>
+            e.date.year == day.year &&
+            e.date.month == day.month &&
+            e.date.day == day.day)
+        .toList();
   }
 
   @override
   Widget build(BuildContext context) {
     final sel = _selected ?? DateTime.now();
     final dayLogs = _logsForDay(sel);
-    final summaryText = dayLogs.isNotEmpty ? dayLogs.first.summary : "이 날의 기록이 없습니다.";
+    final summaryText =
+        dayLogs.isNotEmpty ? dayLogs.first.summary : "이 날의 기록이 없습니다.";
 
     return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          // 📅 달력
-          TableCalendar(
-            firstDay: DateTime.utc(2024, 1, 1),
-            lastDay: DateTime.utc(2027, 12, 31),
-            focusedDay: _focused,
-            calendarFormat: CalendarFormat.month,
-            selectedDayPredicate: (d) => _selected != null && isSameDay(_selected, d),
-            onDaySelected: (selectedDay, focusedDay) {
-              setState(() {
-                _selected = selectedDay;
-                _focused = focusedDay;
-              });
-            },
-            calendarBuilders: CalendarBuilders(
-              // 날짜 셀 중앙에 이모지 표시
-              markerBuilder: (context, date, events) {
-                final logs = _logsForDay(date);
-                if (logs.isEmpty) return const SizedBox.shrink();
-                return Center(
-                  child: Text(logs.first.emoji, style: const TextStyle(fontSize: 18)),
-                );
-              },
-            ),
-            headerStyle: HeaderStyle( // const 빼서 안전
-              formatButtonVisible: false,
-              titleCentered: true,
-            ),
-          ),
-
-          const SizedBox(height: 16),
-
-          // 📝 선택일 요약 카드
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 8, offset: Offset(0,3))],
-            ),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Row(children: [
-                const Icon(Icons.calendar_month, color: kMint),
-                const SizedBox(width: 8),
-                Text(
-                  DateFormat('M월 d일의 기록').format(sel),
-                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: kDeepText),
+      child: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: DefaultTextStyle(
+            style: const TextStyle(color: kDeepText), // ✅ 전체 기본 색상 지정
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              // 📅 달력
+              TableCalendar(
+                firstDay: DateTime.utc(2024, 1, 1),
+                lastDay: DateTime.utc(2027, 12, 31),
+                focusedDay: _focused,
+                calendarFormat: CalendarFormat.month,
+                selectedDayPredicate: (d) =>
+                    _selected != null && isSameDay(_selected, d),
+                onDaySelected: (selectedDay, focusedDay) {
+                  setState(() {
+                    _selected = selectedDay;
+                    _focused = focusedDay;
+                  });
+                },
+                calendarBuilders: CalendarBuilders(
+                  // 날짜 셀 중앙에 이모지 표시
+                  markerBuilder: (context, date, events) {
+                    final logs = _logsForDay(date);
+                    if (logs.isEmpty) return const SizedBox.shrink();
+                    return Center(
+                      child: Text(logs.first.emoji,
+                          style: const TextStyle(fontSize: 18)),
+                    );
+                  },
                 ),
-              ]),
+                headerStyle: HeaderStyle(
+                  // const 빼서 안전
+                  formatButtonVisible: false,
+                  titleCentered: true,
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              // 📝 선택일 요약 카드
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                        color: Colors.black12,
+                        blurRadius: 8,
+                        offset: Offset(0, 3))
+                  ],
+                ),
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(children: [
+                        const Icon(Icons.calendar_month, color: kMint),
+                        const SizedBox(width: 8),
+                        Text(
+                          DateFormat('M월 d일의 기록').format(sel),
+                          style: const TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 16,
+                              color: kDeepText),
+                        ),
+                      ]),
+                      const SizedBox(height: 8),
+                      Text(summaryText, style: const TextStyle(fontSize: 14)),
+                    ]),
+              ),
+
+              const SizedBox(height: 16),
+
+              // 🟣 3️⃣ 감정 분포 비율 (캘린더 선택 기반)
+              EmotionRatioPie(selectedDate: sel),
+
               const SizedBox(height: 8),
-              Text(summaryText, style: const TextStyle(fontSize: 14)),
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton.icon(
+                  onPressed: _loadLogs,
+                  icon: const Icon(Icons.refresh_rounded, size: 18),
+                  label: const Text("갱신"),
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              // 📊 4️⃣ 주간 감정 변화 그래프
+              const WeeklyTrendCard(comparisonText: "이번 주 감정 변화"),
             ]),
           ),
-
-          const SizedBox(height: 8),
-          Align(
-            alignment: Alignment.centerRight,
-            child: TextButton.icon(
-              onPressed: _loadLogs,
-              icon: const Icon(Icons.refresh_rounded, size: 18),
-              label: const Text("갱신"),
-            ),
-          ),
-        ]),
+        ),
       ),
     );
   }

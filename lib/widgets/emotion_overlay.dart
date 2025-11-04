@@ -1,3 +1,5 @@
+// lib/widgets/emotion_overlay.dart 파일
+
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 

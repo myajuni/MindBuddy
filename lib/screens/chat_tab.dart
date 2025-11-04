@@ -1,3 +1,5 @@
+// lib/screens/chat_tab.dart 파일
+
 import '../user_context.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;

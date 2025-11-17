@@ -11,7 +11,10 @@ import '../services/emotion_diary.dart'; // ← 상대경로가 제일 튼튼함
 import '../widgets/weekly_trend_card.dart';
 import '../widgets/emotion_ratio_pie.dart';
 
+import 'package:shared_preferences/shared_preferences.dart';
+
 /// ---------------------- 홈 탭 ----------------------
+
 class HomeTab extends StatefulWidget {
   const HomeTab({super.key});
   @override
@@ -23,11 +26,29 @@ class _HomeTabState extends State<HomeTab> {
   DateTime _focused = DateTime.now();
   DateTime? _selected;
   List<EmotionLog> _logs = <EmotionLog>[];
+  String _displayName = AppUser.name;
 
   @override
   void initState() {
     super.initState();
     _loadLogs();
+    setState(() {
+      _displayName = AppUser.name;
+    });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _loadProfileName(); // ← 탭으로 돌아올 때마다 이름 다시 로드
+  }
+
+  Future<void> _loadProfileName() async {
+    final sp = await SharedPreferences.getInstance();
+    final name = sp.getString('profile_name');
+    setState(() {
+      _displayName = (name == null || name.isEmpty) ? '사용자' : name;
+    });
   }
 
   Future<void> _loadLogs() async {
@@ -59,6 +80,17 @@ class _HomeTabState extends State<HomeTab> {
             style: const TextStyle(color: kDeepText), // ✅ 전체 기본 색상 지정
             child:
                 Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Text(
+                  '$_displayName님 안녕하세요 👋',
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                    color: kDeepText,
+                  ),
+                ),
+              ),
               // 📅 달력
               TableCalendar(
                 firstDay: DateTime.utc(2024, 1, 1),

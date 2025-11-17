@@ -48,3 +48,8 @@ app.*.map.json
 # Python virtual environment
 .venv/
 .venv/
+
+# Desktop builds
+macos/
+windows/
+linux/

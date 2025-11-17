@@ -1,5 +1,4 @@
-// lib/user_context.dart 파일
-
 class AppUser {
-  static const id = 'user001'; // 둘 다 여기 값을 쓰게 통일
+  static String id = 'default_user';
+  static String name = '사용자'; // 🔥 이름 저장용 전역 변수 추가
 }

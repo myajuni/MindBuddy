@@ -8,6 +8,7 @@ import 'services/emotion_store.dart';
 import 'screens/profile_tab.dart';
 import 'screens/voice_chat_page.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'services/notification_service.dart'; // ⬅ 추가
 
 const kMint = Color(0xFF9BB7D4);
 const kDeepText = Color.fromARGB(255, 29, 31, 62);
@@ -16,16 +17,18 @@ const kHomeBg = Color(0xFFF0F6FF);
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // ✅ 1️⃣ .env 먼저 로드
+  // 1. .env 로드
   await dotenv.load(fileName: ".env");
 
-  // ✅ 2️⃣ 날짜 포맷 로케일 초기화 (가장 먼저!)
+  // 2. 날짜 포맷 로케일 초기화
   await initializeDateFormatting('ko_KR', null);
 
-  // ✅ 3️⃣ EmotionStore의 암호화 데이터 복원
+  // 3. EmotionStore 데이터 복구
   await EmotionStore.instance.init();
 
-  // ✅ 4️⃣ 앱 실행
+  // 4. 알림 서비스 초기화
+  await NotificationService().init();
+
   runApp(const MyApp());
 }
 
@@ -54,17 +57,28 @@ class MainShell extends StatefulWidget {
 class _MainShellState extends State<MainShell> {
   int _index = 0;
 
-  final _pages = const [
-    HomeTab(),
-    ChatTab(),
-    ProfileTab(),
-  ];
+  /// 🔥 탭 이동할 때마다 새로운 화면을 생성하는 방식
+  Widget _buildPage(int index) {
+    switch (index) {
+      case 0:
+        return const HomeTab(); // ← 매번 새로 생성됨
+      case 1:
+        return const ChatTab();
+      case 2:
+        return const ProfileTab();
+      default:
+        return const HomeTab();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _index == 0 ? kHomeBg : Colors.white,
-      body: IndexedStack(index: _index, children: _pages),
+
+      /// 🔥 IndexedStack → 페이지 함수 방식으로 변경
+      body: _buildPage(_index),
+
       floatingActionButton: _index == 0
           ? FloatingActionButton(
               backgroundColor: kMint,
@@ -76,9 +90,12 @@ class _MainShellState extends State<MainShell> {
               child: const Icon(Icons.add, color: Colors.white),
             )
           : null,
+
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _index,
-        onTap: (i) => setState(() => _index = i),
+        onTap: (i) {
+          setState(() => _index = i); // 🔥 탭 이동 시 새 페이지 생성됨
+        },
         type: BottomNavigationBarType.fixed,
         selectedItemColor: kMint,
         unselectedItemColor: Colors.grey,

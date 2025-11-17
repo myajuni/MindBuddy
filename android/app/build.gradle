@@ -1,44 +1,55 @@
 plugins {
     id "com.android.application"
-    id "kotlin-android"
+    // kotlin-android → 최신 ID로
+    id "org.jetbrains.kotlin.android"
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id "dev.flutter.flutter-gradle-plugin"
 }
 
 android {
-    namespace = "com.example.mindbuddy"
-    compileSdk = flutter.compileSdkVersion
-    ndkVersion = flutter.ndkVersion
-
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
-    }
-
-    kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_1_8
-    }
+    namespace "com.example.mindbuddy"   // ← 실제 패키지명으로 바꿔도 됨
+    compileSdk flutter.compileSdkVersion
+    ndkVersion flutter.ndkVersion
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.example.mindbuddy"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
-        targetSdk = flutter.targetSdkVersion
-        versionCode = flutter.versionCode
-        versionName = flutter.versionName
+        applicationId "com.example.mindbuddy" // ← 실제 패키지명
+        minSdk flutter.minSdkVersion
+        targetSdk flutter.targetSdkVersion
+        versionCode flutter.versionCode
+        versionName flutter.versionName
+    }
+
+    // ★ Java 17 + core library desugaring 활성화
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+        coreLibraryDesugaringEnabled true
+    }
+
+    // ★ Kotlin 타깃 17
+    kotlinOptions {
+        jvmTarget = "17"
     }
 
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.debug
+            // TODO: 릴리즈 서명 설정 필요 시 교체
+            signingConfig signingConfigs.debug
         }
     }
 }
 
+// (선택) Kotlin 툴체인도 17로 명시 — 없어도 되지만 안정성↑
+kotlin {
+    jvmToolchain(17)
+}
+
 flutter {
     source = "../.."
+}
+
+dependencies {
+    // ★ desugaring 라이브러리 (flutter_local_notifications 등에서 요구)
+    coreLibraryDesugaring "com.android.tools:desugar_jdk_libs:2.1.4"
+    // 여기에 필요한 implementation 들을 추가하면 됩니다.
 }

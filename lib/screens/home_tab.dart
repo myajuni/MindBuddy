@@ -8,7 +8,7 @@ import '../main.dart';
 // import '../services/memory_store.dart';
 import '../services/emotion_diary.dart'; // ← 상대경로가 제일 튼튼함
 
-import '../widgets/weekly_trend_card.dart';
+import '../widgets/weekly_emotion_bar.dart';
 import '../widgets/emotion_ratio_pie.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
@@ -34,6 +34,23 @@ class _HomeTabState extends State<HomeTab> {
     _loadLogs();
     setState(() {
       _displayName = AppUser.name;
+    });
+  }
+
+  List<DateTime> _weekDays(DateTime day) {
+    final monday = day.subtract(Duration(days: day.weekday % 7));
+    return List.generate(7, (i) => monday.add(Duration(days: i)));
+  }
+
+  Map<String, int> _emotionCountForDay(DateTime day) {
+    return _logs
+        .where((e) =>
+            e.date.year == day.year &&
+            e.date.month == day.month &&
+            e.date.day == day.day)
+        .fold<Map<String, int>>({}, (acc, log) {
+      acc[log.emoji] = (acc[log.emoji] ?? 0) + 1;
+      return acc;
     });
   }
 
@@ -71,6 +88,12 @@ class _HomeTabState extends State<HomeTab> {
     final dayLogs = _logsForDay(sel);
     final summaryText =
         dayLogs.isNotEmpty ? dayLogs.first.summary : "이 날의 기록이 없습니다.";
+
+    final week = _weekDays(sel);
+    final weekData = week.map((d) => _emotionCountForDay(d)).toList();
+    final selectedIndex = week.indexWhere(
+      (d) => d.year == sel.year && d.month == sel.month && d.day == sel.day,
+    );
 
     return SafeArea(
       child: SingleChildScrollView(
@@ -158,11 +181,6 @@ class _HomeTabState extends State<HomeTab> {
                     ]),
               ),
 
-              const SizedBox(height: 16),
-
-              // 🟣 3️⃣ 감정 분포 비율 (캘린더 선택 기반)
-              EmotionRatioPie(selectedDate: sel),
-
               const SizedBox(height: 8),
               Align(
                 alignment: Alignment.centerRight,
@@ -173,10 +191,16 @@ class _HomeTabState extends State<HomeTab> {
                 ),
               ),
 
+              // 🟣 3️⃣ 감정 분포 비율 (캘린더 선택 기반)
+              EmotionRatioPie(selectedDate: sel),
+
               const SizedBox(height: 16),
 
               // 📊 4️⃣ 주간 감정 변화 그래프
-              const WeeklyTrendCard(comparisonText: "이번 주 감정 변화"),
+
+              WeeklyEmotionBar(
+                selectedDate: sel,
+              )
             ]),
           ),
         ),

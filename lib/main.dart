@@ -79,17 +79,19 @@ class _MainShellState extends State<MainShell> {
       /// 🔥 IndexedStack → 페이지 함수 방식으로 변경
       body: _buildPage(_index),
 
-      floatingActionButton: _index == 0
-          ? FloatingActionButton(
-              backgroundColor: kMint,
-              onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const NewLogPage()),
-                );
-              },
-              child: const Icon(Icons.add, color: Colors.white),
-            )
-          : null,
+      floatingActionButton: null,
+
+      // floatingActionButton: _index == 0
+      //     ? FloatingActionButton(
+      //         backgroundColor: kMint,
+      //         onPressed: () {
+      //           Navigator.of(context).push(
+      //             MaterialPageRoute(builder: (_) => const NewLogPage()),
+      //           );
+      //         },
+      //         child: const Icon(Icons.add, color: Colors.white),
+      //       )
+      //     : null,
 
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _index,

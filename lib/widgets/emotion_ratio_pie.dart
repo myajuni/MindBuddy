@@ -1,6 +1,10 @@
+//lib/widgets/emotion_ratio_pie.dart 파일
+
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:mindbuddy/services/emotion_store.dart';
+import '../widgets/emotion_overlay.dart' show emotionColors;
+
 import 'dart:collection';
 
 class EmotionRatioPie extends StatefulWidget {
@@ -97,8 +101,7 @@ class _EmotionRatioPieState extends State<EmotionRatioPie> {
                 sections: _ratio.entries.map((e) {
                   return PieChartSectionData(
                     value: e.value,
-                    color: Colors
-                        .primaries[e.key.hashCode % Colors.primaries.length],
+                    color: emotionColors[e.key] ?? Colors.grey,
                     title: "${e.key}\n${(e.value * 100).toStringAsFixed(0)}%",
                     radius: 60,
                     titleStyle: const TextStyle(

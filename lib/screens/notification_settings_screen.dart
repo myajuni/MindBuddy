@@ -1,3 +1,5 @@
+// lib/screens/notification_setting_screen.dart 파일
+
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/notification_service.dart';

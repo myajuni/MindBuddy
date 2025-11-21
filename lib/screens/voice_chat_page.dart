@@ -9,6 +9,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../services/prompt_manager.dart';
 import '../widgets/emotion_overlay.dart';
 import 'package:mindbuddy/services/emotion_store.dart';
+import 'package:mindbuddy/services/danger_words.dart';
 
 const kMint = Color.fromARGB(255, 119, 161, 206);
 const kDeepText = Color.fromARGB(255, 29, 31, 62);
@@ -79,6 +80,24 @@ class _VoiceChatPageState extends State<VoiceChatPage> {
       _isListening = false;
       _messages.add({"role": "user", "content": userText});
     });
+
+    // 🔥 자살방지
+    if (containsDangerWord(userText)) {
+      final msg = "⚠️ 지금 많이 힘드신 것 같아요.\n\n"
+          "혼자 감당하시지 않아도 괜찮아요.\n"
+          "지금 즉시 도움을 받을 수 있는 번호입니다.\n\n"
+          "📞 24시간 자살예방 상담전화 1393\n"
+          "📞 정신건강 위기 상담 1577-0199\n\n"
+          "지금 바로 연락해보세요.";
+
+      setState(() {
+        _messages.add({"role": "assistant", "content": msg});
+        _isProcessing = false;
+      });
+
+      await _tts.speak("지금 매우 힘들어 보이네요. 24시간 자살 예방 상담 전화 1393에 연락해보세요.");
+      return; // ⛔ GPT 호출하지 않고 즉시 종료
+    }
 
     try {
       // ✅ 1️⃣ 감정 분석 + 프롬프트 생성

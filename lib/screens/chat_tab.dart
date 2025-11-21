@@ -13,6 +13,8 @@ import 'package:mindbuddy/services/diary_summarizer.dart'; // 일기형 요약 �
 
 import 'package:mindbuddy/services/prompt_manager.dart';
 import 'voice_chat_page.dart';
+import 'package:mindbuddy/services/danger_words.dart';
+import '../services/greetings.dart';
 
 // 🔽 서비스 파일들은 패키지 경로 + 별칭으로 고정
 import 'package:mindbuddy/services/emotion_diary.dart';
@@ -104,6 +106,11 @@ class _ChatTabState extends State<ChatTab> {
   @override
   void initState() {
     super.initState();
+
+    // 챗봇 첫 인사
+    final greet = generateGreeting();
+    _messages.add({"role": "assistant", "content": greet});
+
     _promptManager = PromptManager(userId);
     _tts.setLanguage("ko-KR");
 
@@ -232,19 +239,37 @@ class _ChatTabState extends State<ChatTab> {
   }
 
   /// 💬 GPT 대화 처리 (감정 + 프롬프트 + 응답)
-  Future<void> sendMessage(String text) async {
-    if (text.trim().isEmpty) return;
+  Future<void> _sendToGPT(String userText) async {
+    if (userText.trim().isEmpty) return;
 
     setState(() {
-      _messages.add({"role": "user", "content": text});
+      _messages.add({"role": "user", "content": userText});
       _isLoading = true;
     });
 
-    await _appendTodayLog(role: 'user', text: text);
+    // 🔥🔥🔥 여기부터 추가하면 됨 — 정확한 위치임 🔥🔥🔥
+    if (containsDangerWord(userText)) {
+      final msg = "⚠️ 지금 많이 힘드신 것 같아요.\n\n"
+          "혼자 감당하시지 않아도 괜찮아요.\n"
+          "지금 즉시 도움을 받을 수 있는 번호입니다.\n\n"
+          "📞 24시간 자살예방 상담전화 1393\n"
+          "📞 정신건강 위기 상담 1577-0199\n\n"
+          "지금 바로 연락해보세요.";
+
+      setState(() {
+        _messages.add({"role": "assistant", "content": msg});
+        _isLoading = false;
+      });
+
+      await _tts.speak("지금 매우 힘들어 보이네요. 24시간 자살 예방 상담 전화 1393에 연락해보세요.");
+      return; // ⛔ GPT 호출하지 않고 즉시 종료
+    }
+
+    await _appendTodayLog(role: 'user', text: userText);
     await _incUserCountAndMaybeShowFab();
 
     try {
-      final res = await _promptManager.updatePrompt(text, _messages);
+      final res = await _promptManager.updatePrompt(userText, _messages);
       final systemPrompt = res["prompt"];
       debugPrint("🧠 프롬프트 생성 완료");
 
@@ -447,14 +472,14 @@ class _ChatTabState extends State<ChatTab> {
                             borderRadius: BorderRadius.all(Radius.circular(14)),
                           ),
                         ),
-                        onSubmitted: sendMessage,
+                        onSubmitted: _sendToGPT,
                       ),
                     ),
                     const SizedBox(width: 8),
                     if (hasInput)
                       IconButton(
                         icon: const Icon(Icons.send_rounded, color: kSoftBlue),
-                        onPressed: () => sendMessage(_controller.text),
+                        onPressed: () => _sendToGPT(_controller.text),
                       )
                     else
                       IconButton(

@@ -8,7 +8,14 @@ import 'services/emotion_store.dart';
 import 'screens/profile_tab.dart';
 import 'screens/voice_chat_page.dart';
 import 'package:intl/date_symbol_data_local.dart';
-import 'services/notification_service.dart'; // ⬅ 추가
+import 'services/notification_service.dart';
+
+import 'screens/setup_pin_screen.dart';
+import 'screens/lock_screen.dart';
+import '../user_context.dart';
+
+import 'package:shared_preferences/shared_preferences.dart';
+import 'screens/name_intro_screen.dart';
 
 const kMint = Color(0xFF9BB7D4);
 const kDeepText = Color.fromARGB(255, 29, 31, 62);
@@ -20,14 +27,18 @@ Future<void> main() async {
   // 1. .env 로드
   await dotenv.load(fileName: ".env");
 
-  // 2. 날짜 포맷 로케일 초기화
+  // 2. 날짜 설정
   await initializeDateFormatting('ko_KR', null);
 
-  // 3. EmotionStore 데이터 복구
+  // 3. 감정 히스토리 로드
   await EmotionStore.instance.init();
 
   // 4. 알림 서비스 초기화
   await NotificationService().init();
+
+  // 5. AppUser 데이터 로드
+  await AppUser.loadName();
+  await AppUser.loadPin();
 
   runApp(const MyApp());
 }
@@ -37,11 +48,18 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final hasName = AppUser.name.isNotEmpty;
+    final hasPin = AppUser.pin != null && AppUser.pin!.isNotEmpty;
+
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'MindBuddy',
       theme: ThemeData(useMaterial3: true),
-      home: const MainShell(),
+      home: !hasName
+          ? const NameIntroScreen()
+          : !hasPin
+              ? const SetupPinScreen()
+              : const LockScreen(),
     );
   }
 }

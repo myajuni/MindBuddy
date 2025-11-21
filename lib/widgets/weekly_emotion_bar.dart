@@ -1,3 +1,5 @@
+// lib/services/weekly_emotion_bar.dart 파일
+
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:mindbuddy/services/emotion_store.dart';

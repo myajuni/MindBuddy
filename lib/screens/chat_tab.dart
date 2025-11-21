@@ -25,7 +25,6 @@ import 'package:path_provider/path_provider.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 
 import '../widgets/emotion_overlay.dart';
-import 'package:mindbuddy/services/api_client.dart';
 import 'package:mindbuddy/services/emotion_store.dart';
 
 const kMint = Color(0xFF9BB7D4);
